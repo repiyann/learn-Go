@@ -1,16 +1,25 @@
-package departure
+package controllers
 
 import (
-	"travelinaja/app/database"
 	"travelinaja/app/models"
+	services "travelinaja/app/services/departure"
 	"travelinaja/app/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
-func CreateDeparture(c *fiber.Ctx) error {
+type DepartureController struct {
+	DepartureService services.DepartureService
+}
+
+func NewDepartureController(service services.DepartureService) *DepartureController {
+	return &DepartureController{
+		DepartureService: service,
+	}
+}
+
+func (controller *DepartureController) CreateDeparture(c *fiber.Ctx) error {
 	departure := new(models.Departure)
 
 	if err := c.BodyParser(departure); err != nil {
@@ -18,18 +27,16 @@ func CreateDeparture(c *fiber.Ctx) error {
 			"message": err.Error(),
 		})
 	}
+
 	if err := utils.Validate(departure); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": err.Error(),
 		})
 	}
 
-	departure.DepartID = uuid.New()
-	result := database.DBConn.Create(&departure)
-
-	if result.Error != nil {
+	if err := controller.DepartureService.CreateDeparture(departure); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": result.Error.Error(),
+			"message": err.Error(),
 		})
 	}
 
@@ -38,15 +45,15 @@ func CreateDeparture(c *fiber.Ctx) error {
 	})
 }
 
-func GetDepartures(c *fiber.Ctx) error {
-	departures := []models.Departure{}
-	result := database.DBConn.Find(&departures)
+func (controller *DepartureController) GetDepartures(c *fiber.Ctx) error {
+	departures, err := controller.DepartureService.GetDepartures()
 
-	if result.Error != nil {
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": result.Error.Error(),
+			"message": err.Error(),
 		})
 	}
+
 	if len(departures) == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"message": "Departures not found",
@@ -59,7 +66,7 @@ func GetDepartures(c *fiber.Ctx) error {
 	})
 }
 
-func GetDepartureByID(c *fiber.Ctx) error {
+func (controller *DepartureController) GetDepartureByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 	departureID, err := uuid.Parse(id)
 
@@ -69,17 +76,16 @@ func GetDepartureByID(c *fiber.Ctx) error {
 		})
 	}
 
-	var departure models.Departure
-	result := database.DBConn.First(&departure, departureID)
-
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+	departure, err := controller.DepartureService.GetDepartureByID(departureID)
+	if err != nil {
+		if err.Error() == "record not found" {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"message": "Departure not found",
 			})
 		}
+
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": result.Error.Error(),
+			"message": err.Error(),
 		})
 	}
 
@@ -89,7 +95,7 @@ func GetDepartureByID(c *fiber.Ctx) error {
 	})
 }
 
-func UpdateDeparture(c *fiber.Ctx) error {
+func (controller *DepartureController) UpdateDeparture(c *fiber.Ctx) error {
 	departure := new(models.Departure)
 
 	if err := c.BodyParser(departure); err != nil {
@@ -97,6 +103,7 @@ func UpdateDeparture(c *fiber.Ctx) error {
 			"message": err.Error(),
 		})
 	}
+
 	if err := utils.Validate(departure); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": err.Error(),
@@ -112,16 +119,15 @@ func UpdateDeparture(c *fiber.Ctx) error {
 		})
 	}
 
-	result := database.DBConn.Model(&models.Departure{}).Where("depart_id = ?", departureID).Updates(departure)
+	if err := controller.DepartureService.UpdateDeparture(departureID, departure); err != nil {
+		if err.Error() == "record not found" {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"message": "Departure not found",
+			})
+		}
 
-	if result.RowsAffected == 0 {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"message": "Departure not found",
-		})
-	}
-	if result.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": result.Error.Error(),
+			"message": err.Error(),
 		})
 	}
 
@@ -130,9 +136,9 @@ func UpdateDeparture(c *fiber.Ctx) error {
 	})
 }
 
-func DeleteDeparture(c *fiber.Ctx) error {
+func (controller *DepartureController) DeleteDeparture(c *fiber.Ctx) error {
 	id := c.Params("id")
-	departID, err := uuid.Parse(id)
+	departureID, err := uuid.Parse(id)
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -140,16 +146,15 @@ func DeleteDeparture(c *fiber.Ctx) error {
 		})
 	}
 
-	result := database.DBConn.Where("depart_id = ?", departID).Delete(&models.Departure{})
+	if err := controller.DepartureService.DeleteDeparture(departureID); err != nil {
+		if err.Error() == "record not found" {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"message": "Departure not found",
+			})
+		}
 
-	if result.RowsAffected == 0 {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"message": "Departure not found",
-		})
-	}
-	if result.Error != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": result.Error.Error(),
+			"message": err.Error(),
 		})
 	}
 

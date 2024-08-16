@@ -23,7 +23,6 @@ func main() {
 	}
 
 	port := os.Getenv("PORT")
-
 	database.ConnectDB()
 
 	app := fiber.New(fiber.Config{
