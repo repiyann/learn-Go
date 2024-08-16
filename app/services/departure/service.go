@@ -9,7 +9,7 @@ import (
 
 type DepartureService interface {
 	CreateDeparture(departure *models.Departure) error
-	GetDepartures() ([]models.Departure, error)
+	GetDepartures(limit, offset int) ([]models.Departure, int, error)
 	GetDepartureByID(id uuid.UUID) (*models.Departure, error)
 	UpdateDeparture(id uuid.UUID, departure *models.Departure) error
 	DeleteDeparture(id uuid.UUID) error
@@ -31,8 +31,8 @@ func (s *departureService) CreateDeparture(departure *models.Departure) error {
 	return s.DepartureRepository.CreateDeparture(departure)
 }
 
-func (s *departureService) GetDepartures() ([]models.Departure, error) {
-	return s.DepartureRepository.GetDepartures()
+func (s *departureService) GetDepartures(limit, offset int) ([]models.Departure, int, error) {
+	return s.DepartureRepository.GetDepartures(limit, offset)
 }
 
 func (s *departureService) GetDepartureByID(id uuid.UUID) (*models.Departure, error) {

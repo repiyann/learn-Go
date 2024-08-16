@@ -8,7 +8,6 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cache"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/etag"
@@ -30,7 +29,9 @@ func main() {
 		JSONDecoder: json.Unmarshal,
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"message": err.Error(),
+				"message": fiber.Map{
+					"errors": err.Error(),
+				},
 			})
 		},
 	})
@@ -38,7 +39,6 @@ func main() {
 	app.Use(compress.New(compress.Config{
 		Level: compress.LevelBestCompression,
 	}))
-	app.Use(cache.New())
 	app.Use(etag.New())
 	app.Use(cors.New())
 	app.Use(helmet.New())
@@ -47,7 +47,9 @@ func main() {
 
 	app.Use(func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"message": "The endpoint you are looking for does not exist. Please check the API documentation.",
+			"message": fiber.Map{
+				"errors": "The endpoint you are looking for does not exist. Please check the API documentation.",
+			},
 		})
 	})
 

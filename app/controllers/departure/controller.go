@@ -24,7 +24,9 @@ func (controller *DepartureController) CreateDeparture(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(departure); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": err.Error(),
+			"message": fiber.Map{
+				"errors": "Invalid input",
+			},
 		})
 	}
 
@@ -38,9 +40,7 @@ func (controller *DepartureController) CreateDeparture(c *fiber.Ctx) error {
 	}
 
 	if err := controller.DepartureService.CreateDeparture(departure); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": err.Error(),
-		})
+		return err
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
@@ -49,23 +49,40 @@ func (controller *DepartureController) CreateDeparture(c *fiber.Ctx) error {
 }
 
 func (controller *DepartureController) GetDepartures(c *fiber.Ctx) error {
-	departures, err := controller.DepartureService.GetDepartures()
+	page := c.QueryInt("page", 1)
+	limit := c.QueryInt("limit", 10)
+
+	if page <= 0 {
+		page = 1
+	}
+
+	if limit <= 0 {
+		limit = 10
+	}
+
+	offset := (page - 1) * limit
+	departures, totalCount, err := controller.DepartureService.GetDepartures(limit, offset)
 
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": err.Error(),
-		})
+		return err
 	}
 
 	if len(departures) == 0 {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"message": "Departures not found",
+			"message": fiber.Map{
+				"errors": "Departures not found",
+			},
 		})
 	}
 
+	totalPages := (totalCount + limit - 1) / limit
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Successfully fetched all departures",
-		"data":    departures,
+		"message":     "Successfully fetched all departures",
+		"data":        departures,
+		"currentPage": page,
+		"totalPages":  totalPages,
+		"limit":       limit,
 	})
 }
 
@@ -75,7 +92,9 @@ func (controller *DepartureController) GetDepartureByID(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid ID format",
+			"message": fiber.Map{
+				"errors": "Invalid ID format",
+			},
 		})
 	}
 
@@ -83,13 +102,13 @@ func (controller *DepartureController) GetDepartureByID(c *fiber.Ctx) error {
 	if err != nil {
 		if err.Error() == "record not found" {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"message": "Departure not found",
+				"message": fiber.Map{
+					"errors": "Departure not found",
+				},
 			})
 		}
 
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": err.Error(),
-		})
+		return err
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -103,7 +122,9 @@ func (controller *DepartureController) UpdateDeparture(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(departure); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": err.Error(),
+			"message": fiber.Map{
+				"errors": "Invalid input",
+			},
 		})
 	}
 
@@ -121,20 +142,22 @@ func (controller *DepartureController) UpdateDeparture(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid ID format",
+			"message": fiber.Map{
+				"errors": "Invalid ID format",
+			},
 		})
 	}
 
 	if err := controller.DepartureService.UpdateDeparture(departureID, departure); err != nil {
 		if err.Error() == "record not found" {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"message": "Departure not found",
+				"message": fiber.Map{
+					"errors": "Departure not found",
+				},
 			})
 		}
 
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": err.Error(),
-		})
+		return err
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -148,20 +171,22 @@ func (controller *DepartureController) DeleteDeparture(c *fiber.Ctx) error {
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid ID format",
+			"message": fiber.Map{
+				"errors": "Invalid ID format",
+			},
 		})
 	}
 
 	if err := controller.DepartureService.DeleteDeparture(departureID); err != nil {
 		if err.Error() == "record not found" {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"message": "Departure not found",
+				"message": fiber.Map{
+					"errors": "Departure not found",
+				},
 			})
 		}
 
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": err.Error(),
-		})
+		return err
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{

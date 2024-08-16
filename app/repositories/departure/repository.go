@@ -9,7 +9,7 @@ import (
 
 type DepartureRepository interface {
 	CreateDeparture(departure *models.Departure) error
-	GetDepartures() ([]models.Departure, error)
+	GetDepartures(limit, offset int) ([]models.Departure, int, error)
 	GetDepartureByID(id uuid.UUID) (*models.Departure, error)
 	UpdateDeparture(id uuid.UUID, departure *models.Departure) error
 	DeleteDeparture(id uuid.UUID) error
@@ -29,11 +29,21 @@ func (r *departureRepository) CreateDeparture(departure *models.Departure) error
 	return r.DB.Create(departure).Error
 }
 
-func (r *departureRepository) GetDepartures() ([]models.Departure, error) {
+func (r *departureRepository) GetDepartures(limit, offset int) ([]models.Departure, int, error) {
 	var departures []models.Departure
-	err := r.DB.Find(&departures).Error
+	var totalCount int64
 
-	return departures, err
+	err := r.DB.Model(&models.Departure{}).Count(&totalCount).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = r.DB.Limit(limit).Offset(offset).Find(&departures).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return departures, int(totalCount), nil
 }
 
 func (r *departureRepository) GetDepartureByID(id uuid.UUID) (*models.Departure, error) {

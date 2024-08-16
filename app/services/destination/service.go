@@ -9,7 +9,7 @@ import (
 
 type DestinationService interface {
 	CreateDestination(destination *models.Destination) error
-	GetDestinations() ([]models.Destination, error)
+	GetDestinations(limit, offset int) ([]models.Destination, int, error)
 	GetDestinationByID(id uuid.UUID) (*models.Destination, error)
 	UpdateDestination(id uuid.UUID, destination *models.Destination) error
 	DeleteDestination(id uuid.UUID) error
@@ -31,8 +31,8 @@ func (s *destinationService) CreateDestination(destination *models.Destination) 
 	return s.DestinationRepository.CreateDestination(destination)
 }
 
-func (s *destinationService) GetDestinations() ([]models.Destination, error) {
-	return s.DestinationRepository.GetDestinations()
+func (s *destinationService) GetDestinations(limit, offset int) ([]models.Destination, int, error) {
+	return s.DestinationRepository.GetDestinations(limit, offset)
 }
 
 func (s *destinationService) GetDestinationByID(id uuid.UUID) (*models.Destination, error) {

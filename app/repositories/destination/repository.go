@@ -9,7 +9,7 @@ import (
 
 type DestinationRepository interface {
 	CreateDestination(destination *models.Destination) error
-	GetDestinations() ([]models.Destination, error)
+	GetDestinations(limit, offset int) ([]models.Destination, int, error)
 	GetDestinationByID(id uuid.UUID) (*models.Destination, error)
 	UpdateDestination(id uuid.UUID, destination *models.Destination) error
 	DeleteDestination(id uuid.UUID) error
@@ -29,11 +29,21 @@ func (r *destinationRepository) CreateDestination(destination *models.Destinatio
 	return r.DB.Create(destination).Error
 }
 
-func (r *destinationRepository) GetDestinations() ([]models.Destination, error) {
+func (r *destinationRepository) GetDestinations(limit, offset int) ([]models.Destination, int, error) {
 	var destination []models.Destination
-	err := r.DB.Find(&destination).Error
+	var totalCount int64
 
-	return destination, err
+	err := r.DB.Model(&models.Departure{}).Count(&totalCount).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = r.DB.Limit(limit).Offset(offset).Find(&destination).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return destination, int(totalCount), err
 }
 
 func (r *destinationRepository) GetDestinationByID(id uuid.UUID) (*models.Destination, error) {
