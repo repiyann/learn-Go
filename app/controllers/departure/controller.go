@@ -28,9 +28,12 @@ func (controller *DepartureController) CreateDeparture(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := utils.Validate(departure); err != nil {
+	validationErrors := utils.Validate(departure)
+	if len(validationErrors.Errors) > 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": err.Error(),
+			"message": fiber.Map{
+				"errors": validationErrors.Errors,
+			},
 		})
 	}
 
@@ -104,9 +107,12 @@ func (controller *DepartureController) UpdateDeparture(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := utils.Validate(departure); err != nil {
+	validationErrors := utils.Validate(departure)
+	if len(validationErrors.Errors) > 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": err.Error(),
+			"message": fiber.Map{
+				"errors": validationErrors.Errors,
+			},
 		})
 	}
 
